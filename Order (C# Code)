@@ -1,0 +1,202 @@
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Drawing;
+using System.Globalization;
+using System.Linq;
+using System.Reflection;
+using System.Security.Policy;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Xml.Linq;
+
+
+
+namespace WebApplication4
+{
+    public partial class WebForm1 : System.Web.UI.Page
+    {
+        SqlConnection con = new SqlConnection("Data Source=LPCL-PG033YLE;Initial Catalog=Ekart_Logistic;Integrated Security=True");
+
+
+
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            if (!Page.IsPostBack)
+            {
+                DataTable dt = new DataTable();
+                dt.Columns.AddRange(new DataColumn[4] { new DataColumn("Product_Name"), new DataColumn("Price"), new DataColumn("Quantity"), new DataColumn("Total_Amount") });
+                ViewState["Customers"] = dt;
+
+                this.BindGrid();
+            }
+            if (IsPostBack)
+            {
+                LoadRecord();
+            }
+        }
+
+        protected void BindGrid()
+        {
+            GridView2.DataSource = (DataTable)ViewState["Customers"];
+            GridView2.DataBind();
+        }
+        protected void Insert(object sender, EventArgs e)
+        {
+            DataTable dt = (DataTable)ViewState["Customers"];
+            dt.Rows.Add(DropDownList1.SelectedValue.Trim(), TextBox8.Text.Trim(), TextBox7.Text.Trim(), TextBox9.Text.Trim());
+            ViewState["Customers"] = dt;
+            this.BindGrid();
+            DropDownList1.SelectedValue = string.Empty;
+            TextBox8.Text = string.Empty;
+            TextBox9.Text = string.Empty;
+            TextBox7.Text = string.Empty;
+
+        }
+
+        
+        void LoadRecord()
+        {
+            SqlCommand comm = new SqlCommand("select  Shipping_Address_1, Shipping_Address_2, Phone, Email_ID , Last_Ordered_On from Customer_Table1 where Customer_Name = '" + DropDownList3.SelectedValue + "'", con);
+            SqlDataAdapter d = new SqlDataAdapter(comm);
+            DataTable dt = new DataTable();
+            d.Fill(dt);
+            GridView1.DataSource = dt;
+            GridView1.DataBind();
+        }
+
+        protected void Button4_Click(object sender, EventArgs e)
+        {
+
+            con.Open();
+            SqlCommand comm = new SqlCommand("select Product_ID,Value from [Product_Table] where Product_Name = '" + DropDownList1.SelectedValue + "';", con);
+            comm.Parameters.AddWithValue("@Name", DropDownList1.SelectedValue);
+            SqlDataReader da = comm.ExecuteReader();
+            while (da.Read())
+            {
+                TextBox6.Text = da.GetValue(0).ToString();
+                TextBox8.Text = da.GetValue(1).ToString();
+            }
+            con.Close();
+        }
+        void LoadRecord4()
+        {
+
+            con.Open();
+            SqlCommand comm = new SqlCommand("select Product_ID,Value from [Product_Table] where Product_Name = '" + DropDownList1.SelectedValue + "';", con);
+            comm.Parameters.AddWithValue("@Name", DropDownList1.SelectedValue);
+            SqlDataReader da = comm.ExecuteReader();
+            while (da.Read())
+            {
+                TextBox6.Text = da.GetValue(0).ToString();
+                TextBox8.Text = da.GetValue(1).ToString();
+            }
+            con.Close();
+        }
+
+
+        protected void Button5_Click(object sender, EventArgs e)
+        {
+
+            TextBox9.Text = Convert.ToString((Convert.ToDouble(this.TextBox7.Text.Trim())) * (Convert.ToDouble(this.TextBox8.Text.Trim())));
+        }
+        ////  con.Open();
+        //  SqlCommand comm = new SqlCommand("select Product_ID,Value from [Product_Table] where Product_Name = '" + DropDownList1.SelectedValue + "';", con);
+        //  comm.Parameters.AddWithValue("@Product_Name", DropDownList1.SelectedValue);
+        //  SqlDataReader da = comm.ExecuteReader();
+        //  while (da.Read())
+
+        protected void TextBox8_TextChange(object sender, EventArgs e)
+        {
+
+        }
+        protected void OnRowDeleting(object sender, GridViewDeleteEventArgs e)
+        {
+            int index = e.RowIndex;
+
+            DataTable dt = ViewState["Customers"] as DataTable;
+            dt.Rows[index].Delete();
+            ViewState["Customers"] = dt;
+            BindGrid();
+
+
+        }
+
+        protected void OnRowDataBound(object sender, GridViewRowEventArgs e)
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                string item = e.Row.Cells[0].Text;
+                foreach (Button button in e.Row.Cells[2].Controls.OfType<Button>())
+                {
+                    if (button.CommandName == "Delete")
+                    {
+                        button.Attributes["onclick"] = "if(!confirm('Do you want to delete " + item + "?')){ return false; };";
+                    }
+                }
+            }
+        }
+
+        protected void GridView1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        protected void Button7_Click(object sender, EventArgs e)
+        
+            {
+               string Allconn = ConfigurationManager.ConnectionStrings["Ekart_LogisticConnectionString"].ConnectionString;
+                SqlConnection sqlconn = new SqlConnection(Allconn);
+
+                foreach (GridViewRow gr in GridView2.Rows)//@Customer_Id,@Phone,@Email_ID,,@Shipping-Address_1,@Shipping-Address_2,@Last_Ordered_On
+            {
+                    string sqlquery = "insert into Order_Records values (@Product_Name,@Qty,@Price,@Amount)";
+                    SqlCommand sqlcomm = new SqlCommand(sqlquery, sqlconn);        
+                    sqlcomm.Parameters.AddWithValue("@Product_Name", gr.Cells[0].Text);
+                    sqlcomm.Parameters.AddWithValue("@Qty", gr.Cells[1].Text);
+                    sqlcomm.Parameters.AddWithValue("@Price",gr.Cells[2].Text);
+                    sqlcomm.Parameters.AddWithValue("@Amount", gr.Cells[3].Text);
+                    sqlconn.Open();
+                    sqlcomm.ExecuteNonQuery();
+                    sqlconn.Close();
+                }
+            }
+
+        protected void DropDownList3_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            SqlCommand comm = new SqlCommand("select Customer_Id, Shipping_Address_1, Shipping_Address_2, Phone, Email_ID , Last_Ordered_On from Customer_Table1 where Customer_Name = '" + DropDownList3.SelectedValue + "'", con);
+            SqlDataAdapter d = new SqlDataAdapter(comm);
+            DataTable dt = new DataTable();
+            d.Fill(dt);
+            GridView1.DataSource = dt;
+            GridView1.DataBind();
+
+        }
+
+        protected void DropDownList1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            LoadRecord4();
+        }
+
+        protected void GridView2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        protected void DropDownList2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        
+       
+
+   
+    }
+
+}
+       
+    
